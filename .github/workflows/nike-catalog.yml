@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '17 21 * * *'
   workflow_dispatch:
+    inputs:
+      retry_failed:
+        description: Only retry failed or unchecked Nike merchant articles
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -51,6 +56,12 @@ jobs:
       - name: Verify exact-style matching and size uncertainty
         run: node --test server/nike-market.test.mjs
       - name: Match current Nike catalog against Rakuten shops and save results
-        run: node scripts/nike-market-sync.mjs
+        run: |
+          if [ "$RETRY_FAILED" = "true" ]; then
+            node scripts/nike-market-sync.mjs --failed-only
+          else
+            node scripts/nike-market-sync.mjs
+          fi
         env:
           NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
+          RETRY_FAILED: ${{ inputs.retry_failed || 'false' }}
