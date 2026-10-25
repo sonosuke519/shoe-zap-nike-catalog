@@ -26,6 +26,8 @@ export function normalizeGroupings(groupings,audience){
   if(!title||!subtitle||!/^[-A-Z0-9]{4,25}-[A-Z0-9]{3}$/.test(styleCode)||!url||!image||p.prices?.currency!=='JPY'||!Number.isSafeInteger(price)||price<=0)fail('product_structure_changed');
   if(!/ランニング|レーシング|ロードレース|トラック|スパイク/.test(subtitle))return [];
   const gender=/ウィメンズ|レディース/.test(subtitle)?'women':/メンズ/.test(subtitle)?'men':'unisex';
+  // Official category groups can contain opposite-gender colorways.
+  if(gender!=='unisex'&&gender!==audience)return [];
   const width=/ワイド/.test(subtitle)?'wide':'regular';
   const category=/トレイル/.test(subtitle)?'trail':/トラック|スパイク/.test(subtitle)?'track':/レーシング|ロードレース/.test(subtitle)?'race':'road';
   const flags=p.featuredAttributes??[];
@@ -70,7 +72,7 @@ export function validateSnapshot(input,now=new Date()){
  if(!Array.isArray(input.coverage)||input.coverage.length!==2||NIKE_SOURCES.some(source=>!input.coverage.some(c=>c.audience===source.audience&&c.url===source.url&&c.complete===true&&Number.isInteger(c.pages)&&c.pages>=1&&c.pages<=30&&Number.isInteger(c.observedGroups)&&c.observedGroups>=c.expectedGroups&&Number.isInteger(c.expectedGroups)&&c.expectedGroups>=1)))fail('incomplete_listing');
  const keys=new Set();
  for(const r of input.variants){
-  if(!['men','women'].includes(r.audience)||r.key!==`${r.audience}:${r.styleCode}`||keys.has(r.key)||!r.title||r.title.length>200||!['regular','wide'].includes(r.width)||r.modelKey!==`${r.audience}:${r.title}:${r.width}`||!['men','women','unisex'].includes(r.gender)||!['road','race','trail','track'].includes(r.category)||!['listed','out_of_stock','coming_soon'].includes(r.listingStatus)||!/^[-A-Z0-9]{4,25}-[A-Z0-9]{3}$/.test(r.styleCode)||!officialURL(r.url,'product')||!officialURL(r.image,'image')||!Number.isSafeInteger(r.price)||r.price<=0||r.currency!=='JPY'||r.sizeVerified!==false)fail('invalid_snapshot');keys.add(r.key);
+  if(!['men','women'].includes(r.audience)||r.key!==`${r.audience}:${r.styleCode}`||keys.has(r.key)||!r.title||r.title.length>200||!['regular','wide'].includes(r.width)||r.modelKey!==`${r.audience}:${r.title}:${r.width}`||!['men','women','unisex'].includes(r.gender)||(r.gender!=='unisex'&&r.gender!==r.audience)||!['road','race','trail','track'].includes(r.category)||!['listed','out_of_stock','coming_soon'].includes(r.listingStatus)||!/^[-A-Z0-9]{4,25}-[A-Z0-9]{3}$/.test(r.styleCode)||!officialURL(r.url,'product')||!officialURL(r.image,'image')||!Number.isSafeInteger(r.price)||r.price<=0||r.currency!=='JPY'||r.sizeVerified!==false)fail('invalid_snapshot');keys.add(r.key);
  }
  for(const c of input.coverage)if(c.variants!==input.variants.filter(r=>r.audience===c.audience).length)fail('incomplete_listing');
  return input;

@@ -30,6 +30,7 @@ export async function nikeEndpoint(request,env){
   validateSnapshot(input);
   const old=await db.prepare("SELECT revision,data_json FROM nike_catalog_state WHERE id='nike-jp'").first();
   const revision=old?.revision||0,previous=old?JSON.parse(old.data_json).variants:[];
+  if(old&&Date.parse(input.collectedAt)<Date.parse(JSON.parse(old.data_json).collectedAt))return reply({error:'older_snapshot_rejected'},409);
   let result;try{result=reconcileNike(previous,input,{baseline:!old});}catch(error){if(error instanceof CatalogError)return recordFailure(error.code);throw error;}
   const data=JSON.stringify({variants:result.variants,coverage:input.coverage,summary:result.summary,collectedAt:input.collectedAt,changes:result.changes});
   if(data.length>1_600_000)return recordFailure('catalog_capacity_reached');
