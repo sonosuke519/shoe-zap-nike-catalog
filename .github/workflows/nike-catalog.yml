@@ -39,3 +39,18 @@ jobs:
         env:
           CATALOG_SITE_ROOT: https://shoe-zap-27-prototype.ponpokoponnosuke.chatgpt.site
           NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
+  nike_market:
+    needs: update
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Verify exact-style matching and size uncertainty
+        run: node --test server/nike-market.test.mjs
+      - name: Match current Nike catalog against Rakuten shops and save results
+        run: node scripts/nike-market-sync.mjs
+        env:
+          NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}

@@ -21,3 +21,11 @@ The second independent job uses `scripts/adidas-sync.mjs` and the site's protect
 Only adult running footwear identifiable by explicit official shop fields is included. Size tags in descriptions never imply size-level stock. Model grouping normalizes spelling while keeping generation and edition names distinct. The page identifies the source as Adidas's official Rakuten shop, whose inventory is different from adidas.jp.
 
 Validate with `node --test server/adidas-catalog.test.mjs`. Localhost-only preview seeds and the dated official-site comparison are not part of this recurring job.
+
+## Nike catalog → Rakuten merchants
+
+After the Nike catalog job succeeds, `nike_market` searches every current Nike article through a protected fixed-query server bridge. All Rakuten shops are eligible; each query is `NIKE <article>` with used listings excluded, ordered by item price, with a maximum of five pages / 150 candidates. The matcher requires a full style/color code in the item title or an explicit product-code field, rejects conflicting gender, children, accessories and used titles, and never infers size stock from a mention in text. Listings with no title gender use the official style code's audience and disclose that basis.
+
+Each article result is persisted independently. Failed checks retain the previous result. Browser requests read saved records without shopping API calls. A result is a merchant page candidate, not a guarantee of authenticity, the lowest total price, or availability/price for a specific size or color. Multi-color pages and API price ranges are identified. Rakuten credentials remain only in the site's runtime secrets. The scheduled workflow always scans all current articles; a local `--articles=AA1234,BB5678` argument is diagnostic only.
+
+A single explicit cm size in the item title is retained as `listedSize`, allowing the site to exclude known other sizes. Ranges, multiple sizes, US-only sizes, and absent sizes remain unknown. This is a title-based filter and never sets `sizeVerified` to true. Visitors can include unknown-size pages or request only matching size declarations.

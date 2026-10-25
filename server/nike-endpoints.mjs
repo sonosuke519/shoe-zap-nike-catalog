@@ -1,7 +1,7 @@
 import {validateSnapshot,reconcileNike,CatalogError} from './nike-catalog.mjs';
 import {validateAdidasSnapshot,ADIDAS_SOURCE} from './adidas-catalog.mjs';
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
-async function authorized(request,key){
+export async function authorized(request,key){
  if(!key||key.length<32)return false;const token=request.headers.get('authorization')?.replace(/^Bearer /,'');if(!token)return false;
  const a=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token))),b=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key)));let diff=0;for(let i=0;i<a.length;i++)diff|=a[i]^b[i];return diff===0;
 }
