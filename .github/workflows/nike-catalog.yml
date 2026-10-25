@@ -1,4 +1,4 @@
-name: Update Nike catalog
+name: Update official shoe catalogs
 on:
   schedule:
     - cron: '17 21 * * *'
@@ -23,4 +23,19 @@ jobs:
         run: node scripts/nike-sync.mjs --upload
         env:
           NIKE_SYNC_URL: https://shoe-zap-27-prototype.ponpokoponnosuke.chatgpt.site/api/nike/sync
+          NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
+  adidas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Verify Adidas official shop parser
+        run: node --test server/adidas-catalog.test.mjs
+      - name: Collect official Rakuten shop through the protected site bridge
+        run: node scripts/adidas-sync.mjs
+        env:
+          CATALOG_SITE_ROOT: https://shoe-zap-27-prototype.ponpokoponnosuke.chatgpt.site
           NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
