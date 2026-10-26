@@ -1,0 +1,29 @@
+name: Update SHOE ZAP reference prices
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Diagnostic model limit (0 means the full catalog)
+        type: number
+        default: 0
+permissions:
+  contents: read
+concurrency:
+  group: zap-daily-reference-prices
+  cancel-in-progress: false
+jobs:
+  prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Refresh saved model reference prices
+        run: node scripts/zap-prices-sync.mjs
+        env:
+          NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
+          ZAP_MODEL_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.limit || '0' }}

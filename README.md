@@ -35,3 +35,7 @@ Each article result is persisted independently. Failed checks retain the previou
 A single explicit cm size in the item title may be retained as `listedSize` metadata, but the site now intentionally ignores size when reading stock and prices. All saved available listings for the exact style/color are returned. The combined Nike/adidas site draws one style/color at a time with swipe/arrow navigation, without brand tabs or size/color selectors. Item-level availability never sets `sizeVerified` to true.
 
 Equal-price listings can move across search pages. Item IDs are deduplicated; coverage counts unique fetched listings and does not claim complete coverage when items are missed. Manual dispatch can set `retry_failed=true` to retry only failed or unchecked articles, without refreshing successful articles again. Scheduled runs always check all articles.
+
+## Current zapping reference prices
+
+`zap-prices.yml` runs every day at 20:00 UTC / 05:00 Asia/Tokyo. It uses the existing NIKE_SYNC_KEY and refreshes model reference prices through the protected Site writer. It does not use AI or copy shopping API credentials into GitHub. Active listings are processed first, then the remaining catalog models. Visitors read saved D1 prices and never initiate a reference-price search against Rakuten. Records expire after 24 hours. Manual diagnostic runs may set a model limit; scheduled runs always process the full catalog.
