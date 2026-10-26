@@ -3,6 +3,7 @@ export const BRANDS={
  brooks:{label:'Brooks',host:'brooksrunning.co.jp',source:'official_site',collections:['men-road-running','women-road-running','men-racing','women-racing','men-trail','women-trail']},
  saucony:{label:'Saucony',host:'saucony.jp',source:'official_site',collections:['running-mens','running-womens','racing-mens','racing-womens','trail-mens','trail-womens']},
  salomon:{label:'Salomon',host:'salomon.jp',source:'official_site',collections:['men-shoes-running','women-shoes-running','men-shoes-trail-running','women-shoes-trail-running','men-shoes-gravel-running','women-shoes-gravel-running']},
+ on:{label:'On',host:'www.on.com',source:'official_site',manual:true,sourceURL:'https://www.on.com/ja-jp/shop/shoes/running'},
  asics:{label:'ASICS',host:'www.asics.com',shop:'asicsonline',source:'official_rakuten'},
  mizuno:{label:'Mizuno',host:'jpn.mizuno.com',shop:'mizunoshop',source:'official_rakuten'},
  puma:{label:'PUMA',host:'jp.puma.com',shop:'puma',source:'official_rakuten'}
@@ -10,7 +11,7 @@ export const BRANDS={
 export const clean=v=>String(v??'').normalize('NFKC').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 export const decode=v=>String(v).replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
 const fail=code=>{const e=Error(code);e.code=code;throw e;};
-export function safeBrandURL(value,brand,image=false){try{const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password)return null;const b=BRANDS[brand];if(!b)return null;if(image)return ['cdn.shopify.com','nb.scene7.com','image.rakuten.co.jp','thumbnail.image.rakuten.co.jp'].includes(u.hostname)?u.href:null;return u.hostname===b.host||u.hostname==='item.rakuten.co.jp'&&b.shop&&u.pathname.startsWith('/'+b.shop+'/')?u.href:null;}catch{return null;}}
+export function safeBrandURL(value,brand,image=false){try{const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password)return null;const b=BRANDS[brand];if(!b)return null;if(image)return ['cdn.shopify.com','nb.scene7.com','image.rakuten.co.jp','thumbnail.image.rakuten.co.jp'].includes(u.hostname)||brand==='on'&&u.hostname==='images.ctfassets.net'&&u.pathname.startsWith('/hnk2vsx53n6l/')?u.href:null;return u.hostname===b.host||u.hostname==='item.rakuten.co.jp'&&b.shop&&u.pathname.startsWith('/'+b.shop+'/')?u.href:null;}catch{return null;}}
 export function modelName(t){return clean(t).split(/\s*\|\s*/)[0].replace(/\s*\([^)]*\)\s*/g,' ').replace(/\s+/g,' ').trim();}
 export const modelId=t=>modelName(t).toUpperCase().replace(/[^\p{L}\p{N}]/gu,'');
 function makeRows(brand,{title,styleCode,colorName,image,url,gender,category='road',price,listingStatus='listed',width='unknown',matchCodes=[]}){
@@ -56,6 +57,7 @@ export function parseNewBalance(html,audience){
 }
 export async function collectOfficial(brand,{fetcher=fetch,wait=ms=>new Promise(r=>setTimeout(r,ms)),capture=async()=>{}}={}){
  const b=BRANDS[brand];if(!b||b.source!=='official_site')fail('unknown_brand');const all=new Map(),coverage=[];
+ if(b.manual)fail('browser_snapshot_required');
  for(const collection of b.collections){let observed=0,excluded=0,pages=0,expected=null;const ids=new Set();
   for(let page=1;page<=25;page++){
    const nb=brand==='newbalance',url=nb?`https://${b.host}/${collection}/?start=${(page-1)*18}&sz=18`:`https://${b.host}/collections/${collection}/products.json?limit=250&page=${page}`;
@@ -74,8 +76,24 @@ export function validateBrandSnapshot(input,now=Date.now()){
  if(!Array.isArray(input.coverage)||input.coverage.length!==(b.collections?.length||1)||input.coverage.some(c=>c.complete!==true||!Number.isInteger(c.pages)||c.pages<1||c.pages>100||!Number.isInteger(c.expectedItems)||c.expectedItems<0||c.observedItems!==c.expectedItems))fail('incomplete_listing');
  if(b.collections&&b.collections.some(collection=>!input.coverage.some(c=>c.collection===collection&&c.url===`https://${b.host}/collections/${collection}`)))fail('incomplete_listing');
  if(b.shop&&input.coverage[0].url!=='https://www.rakuten.co.jp/'+b.shop+'/')fail('invalid_source');
+ if(b.manual&&(input.coverage[0].url!==b.sourceURL||input.coverage[0].method!=='browser_dom'||input.coverage[0].expectedItems<1))fail('invalid_source');
  const keys=new Set();for(const v of input.variants){if(v.brand!==input.brand||v.source!==b.source||!['men','women'].includes(v.audience)||!['men','women','unisex'].includes(v.gender)||v.gender!=='unisex'&&v.gender!==v.audience||!['road','race','trail','track'].includes(v.category)||!['unknown','regular','wide'].includes(v.width)||!['listed','out_of_stock'].includes(v.listingStatus)||typeof v.styleCode!=='string'||!/^[-A-Z0-9/]{4,50}$/.test(v.styleCode)||v.key!==v.audience+':'+v.styleCode||keys.has(v.key)||!v.title||v.title.length>250||v.modelKey!==`${v.audience}:${modelId(v.title)}:${v.width}`||!safeBrandURL(v.url,input.brand)||!safeBrandURL(v.image,input.brand,true)||!Number.isSafeInteger(v.price)||v.price<1||v.currency!=='JPY'||v.sizeVerified!==false||!Array.isArray(v.matchCodes)||!v.matchCodes.length||v.matchCodes.some(c=>typeof c!=='string'||!/^[-A-Z0-9/]{4,50}$/.test(c)))fail('invalid_variant');keys.add(v.key);}
  return input;
+}
+export function normalizeOnBrowser(input){
+ if(input?.url!==BRANDS.on.sourceURL||!Array.isArray(input.cards)||Number(input.countText?.match(/^(\d+)結果$/)?.[1])!==input.cards.length||!input.cards.length)fail('incomplete_listing');
+ const rows=new Map();let excluded=0;
+ for(const card of input.cards){
+  const label=clean(card.label),title=label.split(',')[0],gender=card.url?.includes('/womens/')?'women':card.url?.includes('/mens/')?'men':/オールジェンダー/.test(label)?'unisex':null,price=Number(label.match(/[￥¥]([\d,]+)/)?.[1].replace(/,/g,''));
+  if(/トレーニング|ジム|ワークアウト/.test(label)&&!/ランニング|マラソン|トレイル|陸上/.test(label)){excluded++;continue;}
+  const category=/トレイル|クロスカントリー/.test(label)?'trail':/陸上|トラック/.test(label)?'track':/レース|マラソン/.test(label)?'race':'road';
+  if(!gender||!card.colors?.length||!card.colors.some(c=>c.sku===card.sku))fail('on_card_structure_changed');
+  for(const c of card.colors){if(!/^[1-9][A-Z]{2}\d{8}$/.test(c.sku)||!c.url.endsWith(c.sku))fail('on_code_changed');
+   const code=c.sku,base=code.slice(0,-4),color=code.slice(-4);
+   for(const row of makeRows('on',{title,gender,styleCode:code,colorName:c.color,image:c.image,url:c.url,price,category,width:/\bWide\b/i.test(title)?'wide':'unknown',matchCodes:[base+'-'+color]}))rows.set(row.key,{...row,priceScope:'model_listing',catalogRefresh:'browser_snapshot',colorScope:'style_color'});
+  }
+ }
+ return {version:1,status:'ok',brand:'on',syncId:crypto.randomUUID(),collectedAt:input.collectedAt,coverage:[{url:input.url,method:'browser_dom',pages:1,expectedItems:input.cards.length,observedItems:input.cards.length,excluded,complete:true}],variants:[...rows.values()]};
 }
 export function normalizeOfficialShop(brand,items){
  const b=BRANDS[brand],all=new Map();let excluded=0;
