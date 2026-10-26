@@ -108,7 +108,7 @@ export function normalizeOfficialShop(brand,items){
   else if(brand==='newbalance'){styleCode=slug;if(!/^[MWU][A-Z0-9-]{4,20}$/.test(styleCode)){excluded++;continue;}if(!gender)gender=styleCode.startsWith('W')?'women':styleCode.startsWith('M')?'men':'unisex';const leadText=caption.replace(/^クーポン配布中!\s*/,''),lead=leadText.match(/^(.+?\bv\d+(?:\s+(?:GTX|Gore-Tex[®?]?))?)\s+([A-Z][A-Z0-9/ -]*?)(?=[A-Z][a-z]|[^\x20-\x7E]|$)/)||leadText.match(/^(.+?)\s+([A-Z][A-Z0-9/ -]+)(?=[^\x20-\x7E]|$)/);title=lead?.[1]||name.match(/ニューバランス\s+(.+?)\s+シューズ/)?.[1];if(lead){colorName=lead[2].trim();const modifier=colorName.match(/^(GTX|GORE-TEX)\s+/);if(modifier){title+=' '+modifier[1];colorName=colorName.slice(modifier[0].length);}colorScope='style_color';}}
   else {excluded++;continue;}
   if(!gender){excluded++;continue;}if(!title||p.taxFlag!==0)fail('shop_product_structure_changed');
-  const category=/トレイル|TRAIL|NITREL|HIERRO|PEREGRINE/i.test(title+' '+name)?'trail':/スパイク|陸上競技/.test(name)?'track':'road';
+  const usageText=title+' '+name+' '+caption.split(/SPEC|CATEGORY|Other Color/)[0],category=/トレイル|TRAIL|NITREL|HIERRO|PEREGRINE/i.test(usageText)?'trail':/スパイク|陸上競技/.test(usageText)?'track':'road';
   for(const row of makeRows(brand,{title,styleCode,colorName,image:p.mediumImageUrls?.[0]?.imageUrl,url:p.itemUrl,gender,width,category,price:p.itemPrice,listingStatus:p.availability===1?'listed':'out_of_stock'})){
    const v={...row,colorScope},old=all.get(v.key);if(!old||old.listingStatus!=='listed'&&v.listingStatus==='listed'||old.listingStatus===v.listingStatus&&v.price<old.price)all.set(v.key,v);
   }
