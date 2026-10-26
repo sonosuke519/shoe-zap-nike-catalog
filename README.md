@@ -1,5 +1,7 @@
 # SHOE ZAP official catalog jobs
 
+Additional brands use `scripts/brands-sync.mjs`: Brooks, Saucony and Salomon start from the public official running collections and match exact style/color codes to Rakuten merchants. ASICS, New Balance and PUMA collect every page of their official Rakuten shops' running search and exclude clothing, children and accessories. ASICS listing-level codes are retained as listing-level records, without inventing color codes. Mizuno, HOKA and On are pending; the site keeps their acquisition findings separately. The existing daily 06:17 Japan schedule now covers these catalogs and merchant matching. API credentials stay in the site; jobs use the existing `NIKE_SYNC_KEY`. Incomplete collections and failed merchant checks preserve previous successful data. `--catalog-only`, `--market-only`, and `--brand=<id>` support independent diagnosis. A `--limit` is diagnostic only and is never used by the schedule.
+
 Pure Node.js (no AI, no paid API). Each run starts from the current men's and women's Nike Japan running category pages, follows their pagination, and sends a whitelisted snapshot to SHOE ZAP's authenticated writer. Nike By You is excluded. Size-specific stock is not collected.
 
 The site persists a baseline and subsequent differences in D1. Incomplete or failed collection leaves the previous catalog intact. A disappearance is recorded, never treated as proof of discontinuation. Model grouping normalizes Nike/ナイキ and uses audience, official model name, and width; successor relationships are not inferred.

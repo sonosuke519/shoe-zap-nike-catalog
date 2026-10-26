@@ -65,3 +65,33 @@ jobs:
         env:
           NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
           RETRY_FAILED: ${{ inputs.retry_failed || 'false' }}
+  brands_catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Refresh additional official catalogs
+        run: node scripts/brands-sync.mjs --catalog-only
+        env:
+          NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
+  brands_market:
+    needs: brands_catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        brand: [brooks, saucony, salomon]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Match exact official color codes to Rakuten shops
+        run: node scripts/brands-sync.mjs --market-only --brand=${{ matrix.brand }}
+        env:
+          NIKE_SYNC_KEY: ${{ secrets.NIKE_SYNC_KEY }}
